@@ -1,170 +1,122 @@
 const prompt = require('prompt-sync')();
 
-let solde = {
-  euro: 0,
-  dollar: 0,
-  ariary: 0
-};
-
-const tauxDeChange = {
-  euro: {
-    dollar: 1.12,
-    ariary: 4582.95
-  },
-  dollar: {
-    euro: 0.89,
-    ariary: 4106.5
-  },
-  ariary: {
-    euro: 0.00022,
-    dollar: 0.00024
-  }
-};
-
-function demanderChoix(message) {
-  console.log(message);
-  return prompt("> ");
-}
-
 function afficherMessage(message) {
   console.log(message);
 }
 
-function consulterPortefeuille() {
+class Portefeuille {
+  constructor(couleur, taille, limiteStockage) {
+    this.couleur = couleur;
+    this.taille = taille;
+    this.limiteStockage = limiteStockage;
+    this.documents = {};
+    this.estVide = true;
+    this.estPerdu = false;
+  }
+
+  acheterPortefeuille() {
+    afficherMessage(`Vous n'avez pas de portefeuille. Achetez-en un de couleur ${this.couleur} et de taille ${this.taille}.`);
+    this.estVide = false;
+  }
+
+  ajouterArgent(montant) {
+    if (this.estVide) {
+      afficherMessage("Vous devez d'abord acheter un portefeuille.");
+      return;
+    }
+    if (!this.documents.Money) {
+      this.documents.Money = montant;
+    } else {
+      this.documents.Money += montant;
+    }
+    afficherMessage(`Argent ajouté. Nouveau solde : ${this.documents.Money}`);
+  }
+
+  ajouterDocument(type, document) {
+    if (!this.documents[type]) {
+      this.documents[type] = [];
+    }
+
+    if (this.documents[type].length < this.limiteStockage) {
+      this.documents[type].push(document);
+      afficherMessage(`${document} ajouté au portefeuille.`);
+    } else {
+      afficherMessage(`Limite de stockage atteinte pour les ${type}.`);
+    }
+  }
+
+  retirerDocument(type, document) {
+    if (!this.documents[type] || this.documents[type].length === 0) {
+      afficherMessage(`Aucun document de type ${type} dans le portefeuille.`);
+      return;
+    }
+
+    const index = this.documents[type].indexOf(document);
+    if (index !== -1) {
+      this.documents[type].splice(index, 1);
+      afficherMessage(`${document} retiré du portefeuille.`);
+    } else {
+      afficherMessage(`${document} non trouvé dans le portefeuille.`);
+    }
+  }
+}
+
+function consulterPortefeuille(portefeuille) {
+  if (portefeuille.estVide) {
+    portefeuille.acheterPortefeuille();
+  }
+
   while (true) {
-    const choix = demanderChoix("Voulez-vous consulter votre portefeuille ? (Tapez 1 pour Oui, 0 pour Non)");
+    const choix = prompt('Voulez-vous rentrer des documents ou de l\'argent ? (documents/argent/quitter) ');
 
-    if (choix === '1') {
-      afficherMessage(`Votre solde :`);
-      Object.keys(solde).forEach((devise) => {
-        afficherMessage(`${devise}: ${solde[devise]}`);
-      });
+    if (choix === 'documents') {
+      const typeDocument = prompt('Entrez le type de document : ');
+      const nomDocument = prompt('Entrez le nom du document : ');
+      portefeuille.ajouterDocument(typeDocument, nomDocument);
+    } else if (choix === 'argent') {
+      const montant = parseFloat(prompt('Entrez le montant à ajouter : '));
+      portefeuille.ajouterArgent(montant);
+    } else if (choix === 'quitter') {
+      afficherMessage('Au revoir !');
+      break;
+    } else {
+      afficherMessage('Choix non reconnu. Veuillez réessayer.');
+    }
 
-      afficherMessage("Veuillez entrer le montant et l'unité (par exemple: 10 euro) ou 0 pour fermer votre portefeuille.");
-      const entree = demanderChoix("> ");
+    if (!portefeuille.estVide) {
+      while (true) {
+        const nouvelleOperation = prompt('Voulez-vous effectuer une autre opération ? (oui/non) ');
 
-      if (entree === '0') {
-        afficherMessage("Au revoir !");
-        return;
-      } else {
-        const [montantStr, unite] = entree.split(' ');
-        const montant = parseFloat(montantStr);
+        if (nouvelleOperation === 'oui') {
+          const choixOperation = prompt('Que souhaitez-vous faire ? (documents/argent/quitter) ');
 
-        if (!unite || !montant || isNaN(montant)) {
-          afficherMessage("Veuillez entrer un montant valide avec l'unité (par exemple: 10 euro)");
+          if (choixOperation === 'documents') {
+            const typeDocument = prompt('Entrez le type de document : ');
+            const nomDocument = prompt('Entrez le nom du document : ');
+            portefeuille.ajouterDocument(typeDocument, nomDocument);
+          } else if (choixOperation === 'argent') {
+            const montant = parseFloat(prompt('Entrez le montant à ajouter : '));
+            portefeuille.ajouterArgent(montant);
+          } else if (choixOperation === 'quitter') {
+            afficherMessage('Au revoir !');
+            return;
+          } else {
+            afficherMessage('Choix non reconnu. Veuillez réessayer.');
+          }
+        } else if (nouvelleOperation === 'non') {
+          afficherMessage('Au revoir !');
+          return;
         } else {
-          solde[unite.toLowerCase()] += montant;
-          afficherMessage(`Votre nouveau solde en ${unite} est de : ${solde[unite.toLowerCase()]}`);
+          afficherMessage('Veuillez répondre par oui ou non.');
         }
       }
-
-      gestionPortefeuille();
-    } else if (choix === '0') {
-      afficherMessage("Au revoir !");
-      return;
-    } else {
-      afficherMessage("Choix non reconnu. Veuillez réessayer.");
     }
   }
 }
 
-function afficherOptions(options) {
-  options.forEach((option, index) => {
-    afficherMessage(`${index}. ${option}`);
-  });
-}
+const couleur = prompt('Choisissez la couleur du portefeuille : ');
+const taille = prompt('Choisissez la taille du portefeuille : ');
+const limiteStockage = parseInt(prompt('Choisissez la limite de stockage : '));
 
-function convertirMontant(montant, from, to) {
-  if (solde[from] >= montant) {
-    solde[from] -= montant;
-    solde[to] += montant * tauxDeChange[from][to];
-    return true;
-  }
-  return false;
-}
-
-function gestionPortefeuille() {
-  const actions = [
-    "Ajouter de l'argent",
-    "Retirer de l'argent",
-    "Consulter votre solde",
-    "Convertir de l'argent",
-    "Quitter"
-  ];
-
-  while (true) {
-    afficherMessage("Que souhaitez-vous faire ?");
-    afficherOptions(actions);
-
-    const choix = demanderChoix("> ");
-
-    switch (choix) {
-      case '0':
-        afficherMessage(`Votre solde :`);
-        Object.keys(solde).forEach((devise) => {
-          afficherMessage(`${devise}: ${solde[devise]}`);
-        });
-        break;
-      case '1':
-        afficherMessage("Entrez le montant et l'unité que vous souhaitez ajouter (par exemple: 10 euro) : ");
-        const ajoutEntree = demanderChoix("> ");
-        const [ajoutMontantStr, ajoutUnite] = ajoutEntree.split(' ');
-        const ajoutMontant = parseFloat(ajoutMontantStr);
-
-        if (!ajoutUnite || !ajoutMontant || isNaN(ajoutMontant)) {
-          afficherMessage("Veuillez entrer un montant valide avec l'unité (par exemple: 10 euro)");
-        } else {
-          solde[ajoutUnite.toLowerCase()] += ajoutMontant;
-          afficherMessage(`Votre nouveau solde en ${ajoutUnite} est de : ${solde[ajoutUnite.toLowerCase()]}`);
-        }
-        break;
-      case '2':
-        afficherMessage("Entrez le montant et l'unité que vous souhaitez retirer (par exemple: 10 euro) : ");
-        const retraitEntree = demanderChoix("> ");
-        const [retraitMontantStr, retraitUnite] = retraitEntree.split(' ');
-        const retraitMontant = parseFloat(retraitMontantStr);
-
-        if (!retraitUnite || !retraitMontant || isNaN(retraitMontant)) {
-          afficherMessage("Veuillez entrer un montant valide avec l'unité (par exemple: 10 euro)");
-        } else if (solde[retraitUnite.toLowerCase()] < retraitMontant) {
-          afficherMessage("Solde insuffisant.");
-        } else {
-          solde[retraitUnite.toLowerCase()] -= retraitMontant;
-          afficherMessage(`Votre nouveau solde en ${retraitUnite} est de : ${solde[retraitUnite.toLowerCase()]}`);
-        }
-        break;
-      case '3':
-        afficherMessage("Choisissez la devise à convertir (par exemple: 10 euro dollar) : ");
-        const conversionEntree = demanderChoix("> ");
-        const [conversionMontantStr, conversionFrom, conversionTo] = conversionEntree.split(' ');
-        const conversionMontant = parseFloat(conversionMontantStr);
-
-        if (!conversionFrom || !conversionTo || !conversionMontant || isNaN(conversionMontant)) {
-          afficherMessage("Veuillez entrer un montant valide avec les unités à convertir (par exemple: 10 euro dollar)");
-        } else if (solde[conversionFrom.toLowerCase()] < conversionMontant) {
-          afficherMessage("Solde insuffisant.");
-        } else if (tauxDeChange[conversionFrom.toLowerCase()][conversionTo.toLowerCase()]) {
-          const converted = convertirMontant(conversionMontant, conversionFrom.toLowerCase(), conversionTo.toLowerCase());
-          if (converted) {
-            afficherMessage(`Conversion réussie ! Votre solde en ${conversionTo} est maintenant de : ${solde[conversionTo.toLowerCase()]}`);
-          } else {
-            afficherMessage("Impossible de convertir.");
-          }
-        } else {
-          afficherMessage("Conversion non prise en charge.");
-        }
-        break;
-      case '4':
-        afficherMessage("Au revoir !");
-        return;
-      default:
-        afficherMessage("Choix non reconnu. Veuillez réessayer.");
-    }
-  }
-}
-
-function main() {
-  consulterPortefeuille();
-}
-
-main();
+const monPortefeuille = new Portefeuille(couleur, taille, limiteStockage);
+consulterPortefeuille(monPortefeuille);
