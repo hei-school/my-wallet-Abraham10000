@@ -1,82 +1,108 @@
 import readline from 'readline-sync';
 
 
-interface Solde {
-    [key: string]: number;
-  }
+class Portefeuille {
+    couleur: string;
+    taille: string;
+    limiteStockage: number;
+    documents: { [key: string]: string[] };
+    estVide: boolean;
+    estPerdu: boolean;
 
-  interface TauxDeChange {
-    [key: string]: {
-      [key: string]: number;
-    };
-  }
-
-  const solde: Solde = {
-    euro: 0,
-    dollar: 0,
-    ariary: 0,
-  };
-
-  const tauxDeChange: TauxDeChange = {
-    euro: { dollar: 1.12, ariary: 4582.95 },
-    dollar: { euro: 0.89, ariary: 4106.5 },
-    ariary: { euro: 0.00022, dollar: 0.00024 },
-  };
-
-  function demanderChoix(message: string): string {
-    console.log(message);
-    return readline.question('> ');
-  }
-
-  function consulterPortefeuille() {
-    while (true) {
-      const choix = demanderChoix(
-        'Que souhaitez-vous faire ?\n1. Consulter votre portefeuille\n0. Quitter'
-      );
-
-      if (choix === '1') {
-        afficherSolde();
-        gererPortefeuille();
-      } else if (choix === '0') {
-        console.log('Au revoir !');
-        break;
-      } else {
-        console.log('Choix non reconnu. Veuillez réessayer.');
-      }
+    constructor() {
+        this.couleur = '';
+        this.taille = '';
+        this.limiteStockage = 0;
+        this.documents = {};
+        this.estVide = true;
+        this.estPerdu = false;
     }
-  }
 
-  function afficherSolde() {
-    console.log('Votre solde :');
-    Object.entries(solde).forEach(([devise, montant]) => {
-      console.log(`${devise}: ${montant}`);
-    });
-  }
+    acheterPortefeuille(): void {
+        console.log(`Vous n'avez pas de portefeuille. Achetez-en un de couleur ${this.couleur} et de taille ${this.taille}.`);
+        this.estVide = false;
+    }
 
-  function gererPortefeuille() {
-    while (true) {
-      afficherSolde();
-
-      const entree = demanderChoix(
-        "Veuillez entrer le montant et l'unité (par exemple : 10 euro) ou 0 pour quitter."
-      );
-
-      if (entree === '0') {
-        console.log('Au revoir !');
-        break;
-      } else {
-        const [montantStr, unite] = entree.split(' ');
-        const montant = parseFloat(montantStr);
-
-        if (isNaN(montant) || !unite || !solde[unite]) {
-          console.log('Veuillez entrer un montant valide avec l\'unité (par exemple : 10 euro)');
-          continue;
+    ajouterArgent(montant: number): void {
+        if (this.estVide) {
+            console.log("Vous devez d'abord acheter un portefeuille.");
+            return;
         }
 
-        solde[unite] += montant;
-        console.log(`Votre nouveau solde en ${unite} est de : ${solde[unite]}`);
-      }
+        if (!this.documents['Money']) {
+            this.documents['Money'] = montant.toString();
+        } else {
+            this.documents['Money'] = (parseFloat(this.documents['Money']) + montant).toString();
+        }
+        console.log(`Argent ajouté. Nouveau solde : ${this.documents['Money']}`);
     }
-  }
 
-  consulterPortefeuille();
+    ajouterDocument(type: string, document: string): void {
+        if (!this.documents[type]) {
+            this.documents[type] = [];
+        }
+
+        if (this.documents[type].length < this.limiteStockage) {
+            this.documents[type].push(document);
+            console.log(`${document} ajouté au portefeuille.`);
+        } else {
+            console.log(`Limite de stockage atteinte pour les ${type}.`);
+        }
+    }
+
+    retirerDocument(type: string, document: string): void {
+        if (!this.documents[type] || this.documents[type].length === 0) {
+            console.log(`Aucun document de type ${type} dans le portefeuille.`);
+            return;
+        }
+
+        const index = this.documents[type].indexOf(document);
+        if (index !== -1) {
+            this.documents[type].splice(index, 1);
+            console.log(`${document} retiré du portefeuille.`);
+        } else {
+            console.log(`${document} non trouvé dans le portefeuille.`);
+        }
+    }
+}
+
+function afficherMessage(message: string): void {
+    console.log(message);
+}
+
+const portefeuille = new Portefeuille();
+
+afficherMessage("Choisissez la couleur du portefeuille :");
+portefeuille.couleur = prompt();
+
+afficherMessage("Choisissez la taille du portefeuille :");
+portefeuille.taille = prompt();
+
+afficherMessage("Choisissez la limite de stockage :");
+portefeuille.limiteStockage = parseInt(prompt());
+
+if (portefeuille.estVide) {
+    portefeuille.acheterPortefeuille();
+}
+
+while (true) {
+    afficherMessage("Voulez-vous rentrer des documents ou de l'argent ? (documents/argent/quitter) ");
+    const choix: string = prompt();
+
+    if (choix === 'documents') {
+        afficherMessage("Entrez le type de document : ");
+        const typeDocument: string = prompt();
+        afficherMessage("Entrez le nom du document : ");
+        const nomDocument: string = prompt();
+        portefeuille.ajouterDocument(typeDocument, nomDocument);
+    } else if (choix === 'argent') {
+        afficherMessage("Entrez le montant à ajouter : ");
+        const montant: number = parseFloat(prompt());
+        portefeuille.ajouterArgent(montant);
+    } else if (choix === 'quitter') {
+        afficherMessage("Au revoir !");
+        break;
+    } else {
+        afficherMessage("Choix non reconnu. Veuillez réessayer.");
+    }
+}
